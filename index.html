@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    
+    <title>Best Website Builder & App Development Service in India | Polarith Web</title>
+    <meta name="description" content="Polarith Web and Learnings, founded by Priyam Kesh and Souvik Nayak. We are the premier website builder, app development agency, and AI automation service in India. Learn high-income skills like coding, trading, and Generative AI.">
+    <meta name="keywords" content="best website builder in India, app development service in India, AI automation, Priyam Kesh, Souvik Nayak, Polarith Web, generative AI courses, premium web design">
+    <meta name="author" content="Priyam Kesh & Souvik Nayak">
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
+    
+    <meta property="og:title" content="Polarith Web and Learnings | Elite Development & Education">
+    <meta property="og:description" content="Build world-class applications and master the future of tech. The #1 agency and learning hub in India.">
+    <meta property="og:type" content="website">
+    <meta property="og:image" content="./logo.png">
+
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": ["LocalBusiness", "EducationalOrganization"],
+      "name": "Polarith Web and Learnings",
+      "founder": [
+        { "@type": "Person", "name": "Priyam Kesh" },
+        { "@type": "Person", "name": "Souvik Nayak" }
+      ],
+      "description": "Top-tier website builder, AI automation, and app development service in India. Offering advanced education in coding, trading, and generative AI.",
+      "image": "https://polarithgroup.github.io/logo.png",
+      "address": { "@type": "PostalAddress", "addressCountry": "IN" },
+      "contactPoint": { "@type": "ContactPoint", "telephone": "+91-8345890843", "contactType": "Customer Support" }
+    }
+    </script>
+
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;500;700;900&family=Space+Grotesk:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        /* --- CORE VARIABLES --- */
+        :root {
+            --bg-dark: #030305;
+            --text-main: #ffffff;
+            --text-dim: #d1d5db; /* Lightened for better readability */
+            --accent-1: #00f2fe;
+            --accent-2: #4facfe;
+            --accent-3: #7b2cbf;
+            --radius: 4px; 
+            --glass-bg: rgba(10, 12, 16, 0.35);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --glass-highlight: rgba(255, 255, 255, 0.2);
+        }
+
+        /* --- RESET & BASE --- */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            font-family: 'Outfit', sans-serif;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* --- BACKGROUND WITH VISIBLE IMAGE --- */
+        .bg-canvas {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: -2;
+            background: url('./bg.png') no-repeat center center / cover;
+        }
+        .bg-overlay {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: -1;
+            /* Only a subtle darkening overlay so the bg.png shines through */
+            background: rgba(3, 3, 5, 0.65); 
+        }
+        .orb {
+            position: fixed; border-radius: 50%; filter: blur(80px); opacity: 0.4;
+            animation: float 20s infinite ease-in-out alternate; z-index: -1;
+        }
+        .orb-1 { width: 300px; height: 300px; background: var(--accent-1); top: 5%; left: 5%; animation-delay: 0s; }
+        .orb-2 { width: 400px; height: 400px; background: var(--accent-3); bottom: 5%; right: 5%; animation-delay: -5s; }
+
+        @keyframes float {
+            0% { transform: translate(0, 0) scale(1); }
+            50% { transform: translate(5vw, 5vh) scale(1.1); }
+            100% { transform: translate(-5vw, 2vh) scale(0.9); }
+        }
+
+        /* --- PREMIUM LIQUID GLASS UTILITY --- */
+        .liquid-glass {
+            background: var(--glass-bg);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--glass-border);
+            border-top: 1px solid var(--glass-highlight);
+            border-left: 1px solid var(--glass-highlight);
+            border-radius: var(--radius);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* --- NAVIGATION --- */
+        header {
+            position: fixed; top: 0; width: 100%; z-index: 1000;
+            padding: 12px 5%; display: flex; justify-content: space-between; align-items: center;
+            border-bottom: 1px solid var(--glass-border);
+            background: rgba(3, 3, 5, 0.4); backdrop-filter: blur(10px);
+        }
+        .logo img { height: 35px; border-radius: var(--radius); }
+        .nav-links { display: flex; gap: 30px; }
+        .nav-links a {
+            color: var(--text-main); text-decoration: none; font-size: 0.95rem;
+            font-family: 'Space Grotesk', sans-serif; font-weight: 600;
+            text-transform: uppercase; letter-spacing: 1px;
+            position: relative; transition: color 0.3s ease;
+        }
+        .nav-links a::after {
+            content: ''; position: absolute; width: 0; height: 2px;
+            bottom: -4px; left: 0; background: var(--accent-1); transition: width 0.3s ease;
+        }
+        .nav-links a:hover { color: var(--accent-1); }
+        .nav-links a:hover::after { width: 100%; }
+        .hamburger { display: none; color: white; font-size: 1.5rem; cursor: pointer; }
+
+        @media (max-width: 768px) {
+            .nav-links {
+                position: fixed; top: 60px; right: -100%; width: 250px; height: calc(100vh - 60px);
+                flex-direction: column; padding: 30px; background: rgba(3, 3, 5, 0.95);
+                backdrop-filter: blur(20px); transition: right 0.4s ease;
+                border-left: 1px solid var(--glass-border);
+            }
+            .nav-links.active { right: 0; }
+            .hamburger { display: block; }
+        }
+
+        /* --- SCROLL ANIMATIONS UTILITY --- */
+        .reveal { opacity: 0; transform: translateY(30px); transition: all 0.8s ease-out; }
+        .reveal.active { opacity: 1; transform: translateY(0); }
+        .delay-1 { transition-delay: 0.15s; }
+        .delay-2 { transition-delay: 0.3s; }
+
+        /* --- MAIN LAYOUT --- */
+        main { padding: 0 5%; max-width: 1400px; margin: 0 auto; }
+
+        /* --- HERO SECTION --- */
+        .hero {
+            min-height: 100vh; display: flex; flex-direction: column;
+            justify-content: center; align-items: center; text-align: center;
+            position: relative; z-index: 10; padding-top: 100px; padding-bottom: 60px;
+        }
+        .hero-badge {
+            padding: 6px 12px; border: 1px solid var(--glass-highlight); border-radius: var(--radius);
+            font-family: 'Space Grotesk', sans-serif; font-size: 0.8rem; text-transform: uppercase;
+            letter-spacing: 2px; margin-bottom: 20px; background: rgba(255,255,255,0.05);
+        }
+        .hero h1 {
+            font-size: clamp(2rem, 5vw, 4rem); /* Significantly reduced */
+            font-weight: 800; line-height: 1.2; margin-bottom: 15px;
+            background: linear-gradient(to right, #fff, var(--accent-1), var(--accent-3));
+            background-size: 200% auto; -webkit-background-clip: text; color: transparent;
+            animation: shine 5s linear infinite; text-transform: uppercase; letter-spacing: 1px;
+        }
+        .hero p {
+            font-size: 1.05rem; /* Reduced to standard readable size */
+            color: var(--text-dim); max-width: 700px; margin-bottom: 50px;
+            font-weight: 300; line-height: 1.6;
+        }
+        @keyframes shine { to { background-position: 200% center; } }
+
+        /* --- ACTION CARDS --- */
+        .cards-wrapper {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px; width: 100%; max-width: 1000px; z-index: 20;
+        }
+        .action-card {
+            text-decoration: none; color: var(--text-main);
+            padding: 40px 30px; display: flex; flex-direction: column; justify-content: center;
+            min-height: 240px; transition: transform 0.4s ease;
+        }
+        .action-card::before {
+            content: ''; position: absolute; top: 0; left: -100%; width: 50%; height: 100%;
+            background: linear-gradient(to right, transparent, rgba(255,255,255,0.05), transparent);
+            transform: skewX(-20deg); transition: 0.6s;
+        }
+        .action-card:hover::before { left: 200%; }
+        .action-card:hover { transform: translateY(-8px); border-color: var(--accent-1); }
+        
+        .card-icon { font-size: 2rem; margin-bottom: 15px; background: linear-gradient(45deg, var(--accent-1), var(--accent-2)); -webkit-background-clip: text; color: transparent; }
+        .action-card h3 { font-family: 'Space Grotesk', sans-serif; font-size: 1.3rem; margin-bottom: 10px; }
+        .action-card p { font-size: 0.95rem; color: var(--text-dim); line-height: 1.5; }
+
+        @media (max-width: 768px) { .cards-wrapper { grid-template-columns: 1fr; } }
+
+        /* --- ABOUT & CONTACT SECTIONS --- */
+        section { padding: 80px 0; min-height: 60vh; display: flex; align-items: center; justify-content: center; scroll-margin-top: 60px; }
+        .content-box { padding: 50px 40px; max-width: 800px; width: 100%; text-align: center; }
+        .content-box h2 {
+            font-size: clamp(1.8rem, 4vw, 2.5rem); font-family: 'Space Grotesk', sans-serif;
+            text-transform: uppercase; margin-bottom: 20px; letter-spacing: 1px;
+        }
+        .content-box p { font-size: 1.05rem; color: var(--text-dim); line-height: 1.7; margin-bottom: 30px; }
+        .highlight { color: var(--accent-1); font-weight: 600; }
+
+        /* --- BUTTONS --- */
+        .btn-group { display: flex; justify-content: center; gap: 20px; flex-wrap: wrap; }
+        .social-btn {
+            padding: 12px 25px; text-decoration: none; color: #fff; font-size: 1rem;
+            font-family: 'Space Grotesk', sans-serif; font-weight: 600; text-transform: uppercase;
+            display: inline-flex; align-items: center; gap: 10px; position: relative;
+            overflow: hidden; border: 1px solid var(--glass-highlight); border-radius: var(--radius);
+            transition: all 0.3s ease; z-index: 1; background: rgba(255,255,255,0.05);
+        }
+        .social-btn::before {
+            content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            z-index: -1; transition: opacity 0.3s ease; opacity: 0;
+        }
+        .social-btn:hover { transform: translateY(-3px); box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
+        .social-btn:hover::before { opacity: 1; }
+        
+        .btn-wa::before { background: linear-gradient(45deg, #25D366, #128C7E); }
+        .btn-ig::before { background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888); }
+        .social-btn i { font-size: 1.2rem; }
+
+        /* --- FOOTER --- */
+        footer {
+            padding: 40px 5%; text-align: center; border-top: 1px solid var(--glass-border);
+            background: rgba(3, 3, 5, 0.6); backdrop-filter: blur(10px); position: relative; z-index: 10;
+        }
+        footer h3 { font-family: 'Space Grotesk', sans-serif; font-size: 1.2rem; margin-bottom: 10px; letter-spacing: 1px; text-transform: uppercase; }
+        footer p { color: var(--text-dim); max-width: 600px; font-size: 0.9rem; margin: 0 auto 15px auto; line-height: 1.5; }
+        .legal { font-size: 0.8rem; opacity: 0.5; }
+    </style>
+</head>
+<body>
+
+    <div class="bg-canvas"></div>
+    <div class="bg-overlay"></div>
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+
+    <header>
+        <a href="#" class="logo">
+            <img src="./logo.png" alt="Polarith Web and Learnings">
+        </a>
+        <div class="hamburger" id="hamburger"><i class="fas fa-bars"></i></div>
+        <nav class="nav-links" id="nav-links">
+            <a href="#about">About</a>
+            <a href="#contact">Contact</a>
+        </nav>
+    </header>
+
+    <main>
+        <section id="home" class="hero">
+            <div class="hero-badge reveal">India's Elite Digital Hub</div>
+            <h1 class="reveal delay-1">Polarith Web<br>& Learnings</h1>
+            <p class="reveal delay-2">Engineered by Priyam Kesh & Souvik Nayak. We build aggressively optimized digital infrastructures and forge masters in modern tech, trading, and AI.</p>
+            
+            <div class="cards-wrapper">
+                <a href="https://polarithweb.github.io" class="action-card liquid-glass reveal delay-1" id="card1">
+                    <i class="fas fa-laptop-code card-icon"></i>
+                    <h3>Development Services</h3>
+                    <p>Build Your Website, Application, Web App, AI Automations, and robust backend systems with unparalleled precision.</p>
+                </a>
+                <a href="https://priyamkesh.github.io/courses" class="action-card liquid-glass reveal delay-2" id="card2">
+                    <i class="fas fa-brain card-icon"></i>
+                    <h3>Advanced Learning</h3>
+                    <p>Learn real-life skills, Trading, Coding, App Development, or master Generative AI to dominate the future economy.</p>
+                </a>
+            </div>
+        </section>
+
+        <section id="about">
+            <div class="content-box liquid-glass reveal">
+                <h2>The Visionaries</h2>
+                <p>Founded by <span class="highlight">Priyam Kesh</span> and <span class="highlight">Souvik Nayak</span>, Polarith Web and Learnings exists at the intersection of high-end software development and elite technical education. We don't just build the fastest, most scalable websites and applications in India—we teach you how to do it yourself. From AI automation to financial trading mastery, we equip you with the exact tools needed to scale in a hyper-digital world.</p>
+            </div>
+        </section>
+
+        <section id="contact">
+            <div class="content-box liquid-glass reveal">
+                <h2>Initialize Contact</h2>
+                <p>Whether you require a bespoke application or wish to enroll in our elite learning programs, connect with our core team directly.</p>
+                <div class="btn-group">
+                    <a href="https://wa.me/8345890843" target="_blank" rel="noopener noreferrer" class="social-btn btn-wa">
+                        <i class="fab fa-whatsapp"></i> Secure Chat
+                    </a>
+                    <a href="https://instagram.com/polarith.web" target="_blank" rel="noopener noreferrer" class="social-btn btn-ig">
+                        <i class="fab fa-instagram"></i> Follow Us
+                    </a>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <h3>Polarith Web and Learnings</h3>
+        <p>The #1 destination for paramount website building, app development, and next-gen skill acquisition in India. Redefining the digital standard.</p>
+        <p class="legal">&copy; 2026 Polarith Group. All Systems Operational.</p>
+    </footer>
+
+    <script>
+        // 1. Mobile Navigation Toggle
+        const hamburger = document.getElementById('hamburger');
+        const navLinks = document.getElementById('nav-links');
+        
+        hamburger.addEventListener('click', () => {
+            navLinks.classList.toggle('active');
+            hamburger.innerHTML = navLinks.classList.contains('active') 
+                ? '<i class="fas fa-times"></i>' 
+                : '<i class="fas fa-bars"></i>';
+        });
+
+        // Close nav on click for mobile
+        document.querySelectorAll('.nav-links a').forEach(link => {
+            link.addEventListener('click', () => {
+                navLinks.classList.remove('active');
+                hamburger.innerHTML = '<i class="fas fa-bars"></i>';
+            });
+        });
+
+        // 2. Advanced Intersection Observer for Scroll Reveals
+        const observerOptions = { root: null, rootMargin: '0px', threshold: 0.15 };
+        const observer = new IntersectionObserver((entries, observer) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('active');
+                    observer.unobserve(entry.target); // Run once
+                }
+            });
+        }, observerOptions);
+
+        document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+        // 3. 3D Parallax Tilt Effect for Cards
+        const cards = document.querySelectorAll('.action-card');
+        cards.forEach(card => {
+            card.addEventListener('mousemove', e => {
+                const rect = card.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                const centerX = rect.width / 2;
+                const centerY = rect.height / 2;
+                // Calculate tilt degrees (Max 5 deg for smoother look)
+                const rotateX = ((y - centerY) / centerY) * -5;
+                const rotateY = ((x - centerX) / centerX) * 5;
+                
+                // Dynamically update light reflection
+                card.style.background = `radial-gradient(circle at ${x}px ${y}px, rgba(255,255,255,0.1) 0%, var(--glass-bg) 60%)`;
+                card.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale3d(1.01, 1.01, 1.01)`;
+            });
+            
+            card.addEventListener('mouseleave', () => {
+                card.style.background = 'var(--glass-bg)';
+                card.style.transform = `perspective(1000px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)`;
+            });
+        });
+    </script>
+</body>
+                                                                               </html>
+                                                                               
