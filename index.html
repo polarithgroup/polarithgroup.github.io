@@ -1,0 +1,817 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth overflow-x-hidden">
+<head>
+<!-- Playables SDK -->
+<script>// Playables SDK v1.0.0
+// Game lifecycle bridge: rAF-based game-ready detection + event communication
+(function() {
+  'use strict';
+
+  // Idempotency: skip if already initialized (e.g., server-side injection
+  // followed by client-side inject-javascript via the Bloks webview component).
+  if (window.playablesSDK) return;
+
+  var HANDLER_NAME = 'playablesGameEventHandler';
+  var ANDROID_BRIDGE_NAME = '_MetaPlayablesBridge';
+  var RAF_FRAME_THRESHOLD = 3;
+
+  var gameReadySent = false;
+  var firstInteractionSent = false;
+  var errorSent = false;
+  var frameCount = 0;
+  var originalRAF = window.requestAnimationFrame;
+
+  // --- Transport Layer ---
+
+  function hasIOSBridge() {
+    return !!(window.webkit &&
+              window.webkit.messageHandlers &&
+              window.webkit.messageHandlers[HANDLER_NAME]);
+  }
+
+  function hasAndroidBridge() {
+    return !!(window[ANDROID_BRIDGE_NAME] &&
+              typeof window[ANDROID_BRIDGE_NAME].postEvent === 'function');
+  }
+
+  function isInIframe() {
+    return !!(window.parent && window.parent !== window);
+  }
+
+  function sendEvent(eventName, payload) {
+    var message = {
+      type: eventName,
+      payload: payload || {},
+      timestamp: Date.now()
+    };
+
+    if (hasIOSBridge()) {
+      try {
+        window.webkit.messageHandlers[HANDLER_NAME].postMessage(message);
+      } catch (e) { /* ignore */ }
+      return;
+    }
+
+    if (hasAndroidBridge()) {
+    try {
+      var p = payload || {};
+      p.__secureToken = window.__fbAndroidBridgeAuthToken || '';
+      p.timestamp = message.timestamp;
+      window[ANDROID_BRIDGE_NAME].postEvent(
+        eventName,
+        JSON.stringify(p)
+      );
+    } catch (e) { /* ignore */ }
+    return;
+  }
+
+    if (isInIframe()) {
+      try {
+        window.parent.postMessage(message, '*');
+      } catch (e) { /* ignore */ }
+      return;
+    }
+  }
+
+  // --- rAF Game-Ready Detection ---
+
+  function onFrame() {
+    if (gameReadySent) return;
+
+    frameCount++;
+    if (frameCount >= RAF_FRAME_THRESHOLD) {
+      gameReadySent = true;
+      sendEvent('game_ready', {
+        frame_count: frameCount,
+        detected_at: Date.now()
+      });
+      return;
+    }
+
+    originalRAF.call(window, onFrame);
+  }
+
+  if (originalRAF) {
+    window.requestAnimationFrame = function(callback) {
+      if (!gameReadySent) {
+        return originalRAF.call(window, function(timestamp) {
+          frameCount++;
+          if (frameCount >= RAF_FRAME_THRESHOLD && !gameReadySent) {
+            gameReadySent = true;
+            sendEvent('game_ready', {
+              frame_count: frameCount,
+              detected_at: Date.now()
+            });
+          }
+          callback(timestamp);
+        });
+      }
+      return originalRAF.call(window, callback);
+    };
+  }
+
+  // --- First User Interaction Detection ---
+
+  function setupFirstInteractionDetection() {
+    var events = ['touchstart', 'mousedown', 'keydown'];
+
+    function onFirstInteraction() {
+      if (firstInteractionSent) return;
+      firstInteractionSent = true;
+      sendEvent('user_interaction_start', null);
+
+      for (var i = 0; i < events.length; i++) {
+        document.removeEventListener(events[i], onFirstInteraction, true);
+      }
+    }
+
+    for (var i = 0; i < events.length; i++) {
+      document.addEventListener(events[i], onFirstInteraction, true);
+    }
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', setupFirstInteractionDetection);
+  } else {
+    setupFirstInteractionDetection();
+  }
+
+  // --- Auto Error Capture ---
+
+  window.addEventListener('error', function(event) {
+    if (errorSent) return;
+    errorSent = true;
+    sendEvent('error', {
+      message: event.message || 'Unknown error',
+      source: event.filename || '',
+      lineno: event.lineno || 0,
+      colno: event.colno || 0,
+      auto_captured: true
+    });
+  });
+
+  window.addEventListener('unhandledrejection', function(event) {
+    if (errorSent) return;
+    errorSent = true;
+    var reason = event.reason;
+    sendEvent('error', {
+      message: (reason instanceof Error) ? reason.message : String(reason),
+      type: 'unhandled_promise_rejection',
+      auto_captured: true
+    });
+  });
+
+  // --- Public API ---
+
+  window.playablesSDK = {
+    complete: function(score) {
+      sendEvent('game_ended', {
+        score: score,
+        completed: true
+      });
+    },
+
+    error: function(message) {
+      if (errorSent) return;
+      errorSent = true;
+      sendEvent('error', {
+        message: message || 'Unknown error',
+        auto_captured: false
+      });
+    },
+
+    sendEvent: function(eventName, payload) {
+      if (!eventName || typeof eventName !== 'string') return;
+      sendEvent(eventName, payload);
+    }
+  };
+
+  // Kick off rAF detection in case no game code calls rAF immediately
+  if (originalRAF) {
+    originalRAF.call(window, onFrame);
+  }
+})();</script>
+<script>window.Intl=window.Intl||{};Intl.t=function(s){return(Intl._locale&&Intl._locale[s])||s;};</script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Polarith Web & Learnings — Build. ELEVATE. Dominate.</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+  html, body { max-width: 100%; overflow-x: hidden; }
+  * { -webkit-tap-highlight-color: transparent; }
+
+    body { font-family: 'Inter', sans-serif; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+    .fraunces { font-family: 'Fraunces', serif; }
+    .glass { backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); }
+    .dotted { background-image: radial-gradient(circle at 1px 1px, rgba(124,58,237,0.14) 1px, transparent 0); background-size: 28px 28px; }
+    @keyframes float { 0%,100% { transform: translateY(0) } 50% { transform: translateY(-14px) } }
+    .float-slow { animation: float 6s ease-in-out infinite; }
+    .float-1{animation-delay:.2s} .float-2{animation-delay:1.2s} .float-3{animation-delay:2.4s} .float-4{animation-delay:3.6s} .float-5{animation-delay:4.8s}
+    @keyframes spin-slow { to { transform: rotate(360deg) } }
+    .spin-40 { animation: spin-slow 40s linear infinite; }
+    .spin-60 { animation: spin-slow 60s linear infinite reverse; }
+    .spin-80 { animation: spin-slow 80s linear infinite; }
+  </style>
+</head>
+<body class="overflow-x-hidden bg-[#f8fafc] text-slate-900 selection:bg-violet-500/20 selection:text-violet-900">
+  <!-- Background -->
+  <div class="pointer-events-none fixed inset-0 -z-10">
+    <div class="absolute inset-0 bg-[#f8fafc]"></div>
+    <div class="absolute inset-0 opacity-[0.8] dotted"></div>
+    <div class="absolute -top-40 -right-40 h-[600px] w-[600px] rounded-full bg-gradient-to-br from-violet-400/25 to-purple-700/25 blur-[120px]"></div>
+    <div class="absolute top-1/2 -left-60 h-[500px] w-[500px] rounded-full bg-gradient-to-tr from-indigo-400/20 to-violet-600/20 blur-[110px]"></div>
+  </div>
+
+  <!-- HEADER -->
+  <header class="fixed top-4 inset-x-0 z-50 px-4">
+    <div class="mx-auto max-w-7xl flex items-center justify-between rounded-2xl border border-white/40 bg-white/60 px-4 py-3 md:px-6 shadow-2xl shadow-violet-500/10 backdrop-blur-xl">
+      <a href="#home" class="flex items-center gap-2.5">
+        <div class="size-9 rounded-xl bg-gradient-to-br from-[#7c3aed] to-[#4c1d95] grid place-items-center shadow-lg shadow-violet-500/20 ring-1 ring-white/20">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" class="text-white"><path d="M12 2L20 7v10l-8 5-8-5V7l8-5Z" stroke="currentColor" stroke-width="1.5" fill="currentColor" fill-opacity="0.2"/></svg>
+        </div>
+        <span class="text-[22px] font-extrabold tracking-tight">Polarith</span>
+      </a>
+      <nav class="hidden md:flex items-center gap-8 text-[14px] font-medium text-slate-600">
+        <a href="#home" class="hover:text-slate-900 transition">Home</a>
+        <a href="#services" class="hover:text-slate-900 transition">Services</a>
+        <a href="#learnings" class="hover:text-slate-900 transition">Learnings</a>
+        <a href="#about" class="hover:text-slate-900 transition">About</a>
+        <a href="#founder" class="hover:text-slate-900 transition">Founder</a>
+        <a href="#contact" class="hover:text-slate-900 transition">Contact</a>
+      </nav>
+      <div class="flex items-center gap-2">
+        <a href="#contact" class="hidden sm:inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-[#7c3aed] to-[#4c1d95] px-5 py-2.5 text-sm font-semibold text-white shadow-[0_10px_30px_-10px_rgba(124,58,237,0.7)] hover:shadow-[0_14px_40px_-10px_rgba(124,58,237,0.8)] transition-all hover:-translate-y-0.5">
+          Contact Us
+        </a>
+        <button id="menuBtn" class="md:hidden size-9 grid place-items-center rounded-xl border border-white/40 bg-white/70">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+        </button>
+      </div>
+    </div>
+    <div id="mobileNav" class="absolute top-full left-0 right-0 mt-3 px-4 hidden md:hidden">
+      <div class="mx-auto max-w-7xl rounded-2xl border border-white/40 bg-white/90 backdrop-blur-xl shadow-2xl p-4">
+      <div class="grid grid-cols-2 gap-3 text-sm font-medium">
+        <a href="#services" class="rounded-xl bg-slate-50/70 px-4 py-3">Services</a>
+        <a href="#learnings" class="rounded-xl bg-slate-50/70 px-4 py-3">Learnings</a>
+        <a href="#about" class="rounded-xl bg-slate-50/70 px-4 py-3">About</a>
+        <a href="#contact" class="rounded-xl bg-slate-50/70 px-4 py-3">Contact</a>
+      </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- HERO -->
+  <section id="home" class="relative pt-40 pb-20 md:pt-48 md:pb-28">
+    <div class="mx-auto max-w-7xl px-6">
+      <div class="grid lg:grid-cols-2 gap-16 items-center">
+        <div>
+          <div class="inline-flex items-center gap-2 rounded-full border border-violet-200/60 bg-white/70 px-3 py-1.5 text-xs font-medium text-violet-900 shadow-sm backdrop-blur-xl">
+            <span class="relative flex size-2">
+              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-violet-500 opacity-75"></span>
+              <span class="relative inline-flex rounded-full size-2 bg-violet-600"></span>
+            </span>
+            Web & Learnings Ecosystem
+          </div>
+          <h1 class="mt-6 text-5xl md:text-7xl font-black tracking-tighter leading-[0.9] text-slate-900">
+            Build.<br>
+            <span class="bg-gradient-to-r from-[#7c3aed] to-[#4c1d95] bg-clip-text text-transparent">ELEVATE.</span><br>
+            Dominate.
+          </h1>
+          <p class="mt-6 max-w-xl text-lg leading-relaxed text-slate-600">
+            Polarith Web & Learnings is a complete ecosystem of technology, innovation, and real-world skill development.
+          </p>
+          <div class="mt-10 flex items-center gap-4">
+            <a href="https://polarithweb.github.io" target="_blank" rel="noopener noreferrer" class="group inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-[#7c3aed] to-[#4c1d95] px-7 py-4 text-[15px] font-semibold text-white shadow-[0_20px_50px_-15px_rgba(124,58,237,0.65)] transition-all hover:-translate-y-0.5 hover:shadow-[0_28px_60px_-15px_rgba(124,58,237,0.75)]">
+              Explore Services
+              <svg class="transition-transform group-hover:translate-x-0.5" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+            </a>
+          </div>
+        </div>
+
+        <!-- Network Graphic -->
+        <div class="relative mx-auto w-full max-w-[540px] aspect-square">
+          <svg class="absolute inset-0 w-full h-full" viewBox="0 0 500 500" fill="none">
+            <defs>
+              <linearGradient id="lineGrad" x1="0" y1="0" x2="1" y2="1">
+                <stop stop-color="#7c3aed"/><stop offset="1" stop-color="#4c1d95"/>
+              </linearGradient>
+            </defs>
+            <g stroke="url(#lineGrad)" stroke-width="2" opacity="0.35">
+              <path d="M250 250 L250 70" class="animate-pulse"/>
+              <path d="M250 250 L430 150" class="animate-pulse" style="animation-delay:.3s"/>
+              <path d="M250 250 L410 360" class="animate-pulse" style="animation-delay:.6s"/>
+              <path d="M250 250 L90 360" class="animate-pulse" style="animation-delay:.9s"/>
+              <path d="M250 250 L70 150" class="animate-pulse" style="animation-delay:1.2s"/>
+            </g>
+          </svg>
+
+          <!-- center -->
+          <div class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
+            <div class="relative size-28 md:size-32">
+              <div class="absolute inset-0 rounded-full bg-gradient-to-br from-[#7c3aed] to-[#4c1d95] blur-2xl opacity-60"></div>
+              <div class="relative size-full rounded-full bg-gradient-to-br from-[#7c3aed] to-[#4c1d95] shadow-[0_0_80px_rgba(124,58,237,0.55)] ring-1 ring-white/30 grid place-items-center">
+                <span class="text-white font-semibold tracking-wide">Polarith</span>
+              </div>
+            </div>
+          </div>
+
+                    <!-- nodes -->
+          <div class="absolute left-1/2 top-[2%] -translate-x-1/2 float-slow">
+            <div class="rounded-2xl border border-white/50 bg-white/70 px-4 py-2.5 shadow-xl backdrop-blur-xl">
+              <span class="text-sm font-medium text-slate-800">Web Dev</span>
+            </div>
+          </div>
+          <div class="absolute right-0 md:right-[2%] top-[20%] md:top-[22%] float-slow float-1">
+            <div class="rounded-2xl border border-white/50 bg-white/70 px-4 py-2.5 shadow-xl backdrop-blur-xl">
+              <span class="text-sm font-medium text-slate-800">AI</span>
+            </div>
+          </div>
+          <div class="absolute right-1 md:right-[6%] bottom-[20%] md:bottom-[18%] float-slow float-2">
+            <div class="rounded-2xl border border-white/50 bg-white/70 px-4 py-2.5 shadow-xl backdrop-blur-xl">
+              <span class="text-sm font-medium text-slate-800">Stocks</span>
+            </div>
+          </div>
+          <div class="absolute left-1 md:left-[6%] bottom-[20%] md:bottom-[18%] float-slow float-3">
+            <div class="rounded-2xl border border-white/50 bg-white/70 px-4 py-2.5 shadow-xl backdrop-blur-xl">
+              <span class="text-sm font-medium text-slate-800">Marketing</span>
+            </div>
+          </div>
+          <div class="absolute left-0 md:left-[2%] top-[20%] md:top-[22%] float-slow float-4">
+            <div class="rounded-2xl border border-white/50 bg-white/70 px-4 py-2.5 shadow-xl backdrop-blur-xl">
+              <span class="text-sm font-medium text-slate-800">Priyam Kesh</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SERVICES -->
+  <section id="services" class="py-20 md:py-28">
+    <div class="mx-auto max-w-7xl px-6">
+      <div class="max-w-2xl">
+        <h2 class="text-4xl md:text-5xl font-black tracking-tight">Engineered for Execution</h2>
+        <p class="mt-3 text-slate-600">Premium services built with AI-native workflows and conversion focus.</p>
+      </div>
+      <div class="mt-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 md:gap-6">
+<a href="https://wa.me/918345890843?text=I%20want%20to%20get%20Website%20Development" target="_blank" rel="noopener noreferrer" class="group relative rounded-3xl border border-white/40 bg-white/60 p-7 shadow-xl backdrop-blur-xl transition hover:-translate-y-1 hover:shadow-2xl hover:border-violet-300/50">
+          <div class="flex size-12 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-600/15 to-purple-800/15 ring-1 ring-violet-200/50 group-hover:from-violet-600/25 group-hover:to-purple-800/25 transition">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="text-violet-700"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+          </div>
+          <h3 class="mt-5 text-[17px] font-semibold tracking-tight">Website Development</h3>
+          <p class="mt-1.5 text-[13px] text-slate-600">Tap to chat on WhatsApp</p>
+        </a><a href="https://wa.me/918345890843?text=I%20want%20to%20get%20Web%20Applications" target="_blank" rel="noopener noreferrer" class="group relative rounded-3xl border border-white/40 bg-white/60 p-7 shadow-xl backdrop-blur-xl transition hover:-translate-y-1 hover:shadow-2xl hover:border-violet-300/50">
+          <div class="flex size-12 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-600/15 to-purple-800/15 ring-1 ring-violet-200/50 group-hover:from-violet-600/25 group-hover:to-purple-800/25 transition">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="text-violet-700"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+          </div>
+          <h3 class="mt-5 text-[17px] font-semibold tracking-tight">Web Applications</h3>
+          <p class="mt-1.5 text-[13px] text-slate-600">Tap to chat on WhatsApp</p>
+        </a><a href="https://wa.me/918345890843?text=I%20want%20to%20get%20App%20Development" target="_blank" rel="noopener noreferrer" class="group relative rounded-3xl border border-white/40 bg-white/60 p-7 shadow-xl backdrop-blur-xl transition hover:-translate-y-1 hover:shadow-2xl hover:border-violet-300/50">
+          <div class="flex size-12 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-600/15 to-purple-800/15 ring-1 ring-violet-200/50 group-hover:from-violet-600/25 group-hover:to-purple-800/25 transition">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="text-violet-700"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+          </div>
+          <h3 class="mt-5 text-[17px] font-semibold tracking-tight">App Development</h3>
+          <p class="mt-1.5 text-[13px] text-slate-600">Tap to chat on WhatsApp</p>
+        </a><a href="https://wa.me/918345890843?text=I%20want%20to%20get%20AI%20Integration" target="_blank" rel="noopener noreferrer" class="group relative rounded-3xl border border-white/40 bg-white/60 p-7 shadow-xl backdrop-blur-xl transition hover:-translate-y-1 hover:shadow-2xl hover:border-violet-300/50">
+          <div class="flex size-12 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-600/15 to-purple-800/15 ring-1 ring-violet-200/50 group-hover:from-violet-600/25 group-hover:to-purple-800/25 transition">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="text-violet-700"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+          </div>
+          <h3 class="mt-5 text-[17px] font-semibold tracking-tight">AI Integration</h3>
+          <p class="mt-1.5 text-[13px] text-slate-600">Tap to chat on WhatsApp</p>
+        </a><a href="https://wa.me/918345890843?text=I%20want%20to%20get%20AI%20Chatbots" target="_blank" rel="noopener noreferrer" class="group relative rounded-3xl border border-white/40 bg-white/60 p-7 shadow-xl backdrop-blur-xl transition hover:-translate-y-1 hover:shadow-2xl hover:border-violet-300/50">
+          <div class="flex size-12 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-600/15 to-purple-800/15 ring-1 ring-violet-200/50 group-hover:from-violet-600/25 group-hover:to-purple-800/25 transition">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="text-violet-700"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+          </div>
+          <h3 class="mt-5 text-[17px] font-semibold tracking-tight">AI Chatbots</h3>
+          <p class="mt-1.5 text-[13px] text-slate-600">Tap to chat on WhatsApp</p>
+        </a><a href="https://wa.me/918345890843?text=I%20want%20to%20get%20Social%20Media%20Management" target="_blank" rel="noopener noreferrer" class="group relative rounded-3xl border border-white/40 bg-white/60 p-7 shadow-xl backdrop-blur-xl transition hover:-translate-y-1 hover:shadow-2xl hover:border-violet-300/50">
+          <div class="flex size-12 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-600/15 to-purple-800/15 ring-1 ring-violet-200/50 group-hover:from-violet-600/25 group-hover:to-purple-800/25 transition">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="text-violet-700"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+          </div>
+          <h3 class="mt-5 text-[17px] font-semibold tracking-tight">Social Media Management</h3>
+          <p class="mt-1.5 text-[13px] text-slate-600">Tap to chat on WhatsApp</p>
+        </a><a href="https://wa.me/918345890843?text=I%20want%20to%20get%20E-Commerce" target="_blank" rel="noopener noreferrer" class="group relative rounded-3xl border border-white/40 bg-white/60 p-7 shadow-xl backdrop-blur-xl transition hover:-translate-y-1 hover:shadow-2xl hover:border-violet-300/50">
+          <div class="flex size-12 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-600/15 to-purple-800/15 ring-1 ring-violet-200/50 group-hover:from-violet-600/25 group-hover:to-purple-800/25 transition">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="text-violet-700"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+          </div>
+          <h3 class="mt-5 text-[17px] font-semibold tracking-tight">E-Commerce</h3>
+          <p class="mt-1.5 text-[13px] text-slate-600">Tap to chat on WhatsApp</p>
+        </a><a href="https://wa.me/918345890843?text=I%20want%20to%20get%20SEO%20&%20Growth" target="_blank" rel="noopener noreferrer" class="group relative rounded-3xl border border-white/40 bg-white/60 p-7 shadow-xl backdrop-blur-xl transition hover:-translate-y-1 hover:shadow-2xl hover:border-violet-300/50">
+          <div class="flex size-12 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-600/15 to-purple-800/15 ring-1 ring-violet-200/50 group-hover:from-violet-600/25 group-hover:to-purple-800/25 transition">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="text-violet-700"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+          </div>
+          <h3 class="mt-5 text-[17px] font-semibold tracking-tight">SEO & Growth</h3>
+          <p class="mt-1.5 text-[13px] text-slate-600">Tap to chat on WhatsApp</p>
+        </a>
+</div>
+    </div>
+  </section>
+
+  <!-- LEARNINGS -->
+  <section id="learnings" class="py-20 md:py-28">
+    <div class="mx-auto max-w-7xl px-6">
+      <div class="text-center max-w-2xl mx-auto">
+        <h2 class="text-4xl md:text-5xl font-black tracking-tight">Learnings Division</h2>
+        <p class="mt-3 text-slate-600">Skill development with direct mentor access</p>
+      </div>
+      <div class="mt-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+
+      <a href="https://wa.me/919064730934?text=I%20want%20to%20learn%20Basics%20of%20Stock%20Market" class="relative block group">
+        <div class="relative overflow-hidden rounded-[1.8rem] border border-white/60 bg-white/80 backdrop-blur-xl shadow-xl transition group-hover:-translate-y-1 group-hover:shadow-2xl h-full">
+          <div class="absolute top-3 right-3 z-10 rounded-full bg-white/90 px-3 py-1 text-[11px] font-medium shadow">Mentor: Souvik Nayak</div>
+          <div class="aspect-[16/9] w-full bg-gradient-to-br from-violet-100 to-purple-100 grid place-items-center">
+            <img src="basicsofstockmarket.png" alt="Basics of Stock Market" class="w-full h-full object-cover" onerror="this.outerHTML='<div class=\'w-full h-full grid place-items-center text-violet-700 font-semibold p-4 text-center\'>Basics of Stock Market</div>'">
+          </div>
+          <div class="p-5">
+            <h3 class="text-[18px] font-bold text-slate-900">Basics of Stock Market</h3>
+            <p class="mt-1 text-sm text-violet-700 font-medium">Tap to chat on WhatsApp →</p>
+          </div>
+        </div>
+      </a>
+      <a href="https://wa.me/919064730934?text=I%20want%20to%20learn%20Stock%20Analysis%20for%20Long%20Term" class="relative block group">
+        <div class="relative overflow-hidden rounded-[1.8rem] border border-white/60 bg-white/80 backdrop-blur-xl shadow-xl transition group-hover:-translate-y-1 group-hover:shadow-2xl h-full">
+          <div class="absolute top-3 right-3 z-10 rounded-full bg-white/90 px-3 py-1 text-[11px] font-medium shadow">Mentor: Souvik Nayak</div>
+          <div class="aspect-[16/9] w-full bg-gradient-to-br from-violet-100 to-purple-100 grid place-items-center">
+            <img src="stockanalysisforlongterm.png" alt="Stock Analysis for Long Term" class="w-full h-full object-cover" onerror="this.outerHTML='<div class=\'w-full h-full grid place-items-center text-violet-700 font-semibold p-4 text-center\'>Stock Analysis for Long Term</div>'">
+          </div>
+          <div class="p-5">
+            <h3 class="text-[18px] font-bold text-slate-900">Stock Analysis for Long Term</h3>
+            <p class="mt-1 text-sm text-violet-700 font-medium">Tap to chat on WhatsApp →</p>
+          </div>
+        </div>
+      </a>
+      <a href="https://wa.me/919064730934?text=I%20want%20to%20learn%20Intraday%20Trading" class="relative block group">
+        <div class="relative overflow-hidden rounded-[1.8rem] border border-white/60 bg-white/80 backdrop-blur-xl shadow-xl transition group-hover:-translate-y-1 group-hover:shadow-2xl h-full">
+          <div class="absolute top-3 right-3 z-10 rounded-full bg-white/90 px-3 py-1 text-[11px] font-medium shadow">Mentor: Souvik Nayak</div>
+          <div class="aspect-[16/9] w-full bg-gradient-to-br from-violet-100 to-purple-100 grid place-items-center">
+            <img src="intradaytrading.png" alt="Intraday Trading" class="w-full h-full object-cover" onerror="this.outerHTML='<div class=\'w-full h-full grid place-items-center text-violet-700 font-semibold p-4 text-center\'>Intraday Trading</div>'">
+          </div>
+          <div class="p-5">
+            <h3 class="text-[18px] font-bold text-slate-900">Intraday Trading</h3>
+            <p class="mt-1 text-sm text-violet-700 font-medium">Tap to chat on WhatsApp →</p>
+          </div>
+        </div>
+      </a>
+      <a href="https://wa.me/919064730934?text=I%20want%20to%20learn%20Short-Term%20Trading" class="relative block group">
+        <div class="relative overflow-hidden rounded-[1.8rem] border border-white/60 bg-white/80 backdrop-blur-xl shadow-xl transition group-hover:-translate-y-1 group-hover:shadow-2xl h-full">
+          <div class="absolute top-3 right-3 z-10 rounded-full bg-white/90 px-3 py-1 text-[11px] font-medium shadow">Mentor: Souvik Nayak</div>
+          <div class="aspect-[16/9] w-full bg-gradient-to-br from-violet-100 to-purple-100 grid place-items-center">
+            <img src="shorttermtrading.png" alt="Short-Term Trading" class="w-full h-full object-cover" onerror="this.outerHTML='<div class=\'w-full h-full grid place-items-center text-violet-700 font-semibold p-4 text-center\'>Short-Term Trading</div>'">
+          </div>
+          <div class="p-5">
+            <h3 class="text-[18px] font-bold text-slate-900">Short-Term Trading</h3>
+            <p class="mt-1 text-sm text-violet-700 font-medium">Tap to chat on WhatsApp →</p>
+          </div>
+        </div>
+      </a>
+      <a href="https://wa.me/919064730934?text=I%20want%20to%20learn%20Fundamental%20and%20Technical%20Analysis" class="relative block group">
+        <div class="relative overflow-hidden rounded-[1.8rem] border border-white/60 bg-white/80 backdrop-blur-xl shadow-xl transition group-hover:-translate-y-1 group-hover:shadow-2xl h-full">
+          <div class="absolute top-3 right-3 z-10 rounded-full bg-white/90 px-3 py-1 text-[11px] font-medium shadow">Mentor: Souvik Nayak</div>
+          <div class="aspect-[16/9] w-full bg-gradient-to-br from-violet-100 to-purple-100 grid place-items-center">
+            <img src="fundamentalandtechnicalanalysis.png" alt="Fundamental and Technical Analysis" class="w-full h-full object-cover" onerror="this.outerHTML='<div class=\'w-full h-full grid place-items-center text-violet-700 font-semibold p-4 text-center\'>Fundamental and Technical Analysis</div>'">
+          </div>
+          <div class="p-5">
+            <h3 class="text-[18px] font-bold text-slate-900">Fundamental and Technical Analysis</h3>
+            <p class="mt-1 text-sm text-violet-700 font-medium">Tap to chat on WhatsApp →</p>
+          </div>
+        </div>
+      </a>
+      <a href="https://wa.me/919064730934?text=I%20want%20to%20learn%20Trading%20Risk%20Management" class="relative block group">
+        <div class="relative overflow-hidden rounded-[1.8rem] border border-white/60 bg-white/80 backdrop-blur-xl shadow-xl transition group-hover:-translate-y-1 group-hover:shadow-2xl h-full">
+          <div class="absolute top-3 right-3 z-10 rounded-full bg-white/90 px-3 py-1 text-[11px] font-medium shadow">Mentor: Souvik Nayak</div>
+          <div class="aspect-[16/9] w-full bg-gradient-to-br from-violet-100 to-purple-100 grid place-items-center">
+            <img src="tradingriskmanagement.png" alt="Trading Risk Management" class="w-full h-full object-cover" onerror="this.outerHTML='<div class=\'w-full h-full grid place-items-center text-violet-700 font-semibold p-4 text-center\'>Trading Risk Management</div>'">
+          </div>
+          <div class="p-5">
+            <h3 class="text-[18px] font-bold text-slate-900">Trading Risk Management</h3>
+            <p class="mt-1 text-sm text-violet-700 font-medium">Tap to chat on WhatsApp →</p>
+          </div>
+        </div>
+      </a>
+      <a href="https://wa.me/919064730934?text=I%20want%20to%20learn%20Trading%20Plan%2C%20Psychology%2C%20and%20Money%20Rotation" class="relative block group">
+        <div class="relative overflow-hidden rounded-[1.8rem] border border-white/60 bg-white/80 backdrop-blur-xl shadow-xl transition group-hover:-translate-y-1 group-hover:shadow-2xl h-full">
+          <div class="absolute top-3 right-3 z-10 rounded-full bg-white/90 px-3 py-1 text-[11px] font-medium shadow">Mentor: Souvik Nayak</div>
+          <div class="aspect-[16/9] w-full bg-gradient-to-br from-violet-100 to-purple-100 grid place-items-center">
+            <img src="tradingplanpsychologyandmoneyrotation.png" alt="Trading Plan, Psychology, and Money Rotation" class="w-full h-full object-cover" onerror="this.outerHTML='<div class=\'w-full h-full grid place-items-center text-violet-700 font-semibold p-4 text-center\'>Trading Plan, Psychology, and Money Rotation</div>'">
+          </div>
+          <div class="p-5">
+            <h3 class="text-[18px] font-bold text-slate-900">Trading Plan, Psychology, and Money Rotation</h3>
+            <p class="mt-1 text-sm text-violet-700 font-medium">Tap to chat on WhatsApp →</p>
+          </div>
+        </div>
+      </a>
+      <a href="https://wa.me/918345890843?text=I%20want%20to%20learn%20Database" class="relative block group">
+        <div class="relative overflow-hidden rounded-[1.8rem] border border-white/60 bg-white/80 backdrop-blur-xl shadow-xl transition group-hover:-translate-y-1 group-hover:shadow-2xl h-full">
+          <div class="absolute top-3 right-3 z-10 rounded-full bg-white/90 px-3 py-1 text-[11px] font-medium shadow">Mentor: Priyam Kesh</div>
+          <div class="aspect-[16/9] w-full bg-gradient-to-br from-violet-100 to-purple-100 grid place-items-center">
+            <img src="database.png" alt="Database" class="w-full h-full object-cover" onerror="this.outerHTML='<div class=\'w-full h-full grid place-items-center text-violet-700 font-semibold p-4 text-center\'>Database</div>'">
+          </div>
+          <div class="p-5">
+            <h3 class="text-[18px] font-bold text-slate-900">Database</h3>
+            <p class="mt-1 text-sm text-violet-700 font-medium">Tap to chat on WhatsApp →</p>
+          </div>
+        </div>
+      </a>
+      <a href="https://wa.me/918345890843?text=I%20want%20to%20learn%20AI%20Agents" class="relative block group">
+        <div class="relative overflow-hidden rounded-[1.8rem] border border-white/60 bg-white/80 backdrop-blur-xl shadow-xl transition group-hover:-translate-y-1 group-hover:shadow-2xl h-full">
+          <div class="absolute top-3 right-3 z-10 rounded-full bg-white/90 px-3 py-1 text-[11px] font-medium shadow">Mentor: Priyam Kesh</div>
+          <div class="aspect-[16/9] w-full bg-gradient-to-br from-violet-100 to-purple-100 grid place-items-center">
+            <img src="aiagents.png" alt="AI Agents" class="w-full h-full object-cover" onerror="this.outerHTML='<div class=\'w-full h-full grid place-items-center text-violet-700 font-semibold p-4 text-center\'>AI Agents</div>'">
+          </div>
+          <div class="p-5">
+            <h3 class="text-[18px] font-bold text-slate-900">AI Agents</h3>
+            <p class="mt-1 text-sm text-violet-700 font-medium">Tap to chat on WhatsApp →</p>
+          </div>
+        </div>
+      </a>
+      <a href="https://wa.me/918345890843?text=I%20want%20to%20learn%20AntiGravity%20IDE" class="relative block group">
+        <div class="relative overflow-hidden rounded-[1.8rem] border border-white/60 bg-white/80 backdrop-blur-xl shadow-xl transition group-hover:-translate-y-1 group-hover:shadow-2xl h-full">
+          <div class="absolute top-3 right-3 z-10 rounded-full bg-white/90 px-3 py-1 text-[11px] font-medium shadow">Mentor: Priyam Kesh</div>
+          <div class="aspect-[16/9] w-full bg-gradient-to-br from-violet-100 to-purple-100 grid place-items-center">
+            <img src="antigravityide.png" alt="AntiGravity IDE" class="w-full h-full object-cover" onerror="this.outerHTML='<div class=\'w-full h-full grid place-items-center text-violet-700 font-semibold p-4 text-center\'>AntiGravity IDE</div>'">
+          </div>
+          <div class="p-5">
+            <h3 class="text-[18px] font-bold text-slate-900">AntiGravity IDE</h3>
+            <p class="mt-1 text-sm text-violet-700 font-medium">Tap to chat on WhatsApp →</p>
+          </div>
+        </div>
+      </a>
+      <a href="https://wa.me/918345890843?text=I%20want%20to%20learn%20HTML%20-%20CSS%20-%20JavaScript" class="relative block group">
+        <div class="relative overflow-hidden rounded-[1.8rem] border border-white/60 bg-white/80 backdrop-blur-xl shadow-xl transition group-hover:-translate-y-1 group-hover:shadow-2xl h-full">
+          <div class="absolute top-3 right-3 z-10 rounded-full bg-white/90 px-3 py-1 text-[11px] font-medium shadow">Mentor: Priyam Kesh</div>
+          <div class="aspect-[16/9] w-full bg-gradient-to-br from-violet-100 to-purple-100 grid place-items-center">
+            <img src="htmlcssjavascript.png" alt="HTML - CSS - JavaScript" class="w-full h-full object-cover" onerror="this.outerHTML='<div class=\'w-full h-full grid place-items-center text-violet-700 font-semibold p-4 text-center\'>HTML - CSS - JavaScript</div>'">
+          </div>
+          <div class="p-5">
+            <h3 class="text-[18px] font-bold text-slate-900">HTML - CSS - JavaScript</h3>
+            <p class="mt-1 text-sm text-violet-700 font-medium">Tap to chat on WhatsApp →</p>
+          </div>
+        </div>
+      </a>
+      <a href="https://wa.me/918345890843?text=I%20want%20to%20learn%20AI%20Website%20Building" class="relative block group">
+        <div class="relative overflow-hidden rounded-[1.8rem] border border-white/60 bg-white/80 backdrop-blur-xl shadow-xl transition group-hover:-translate-y-1 group-hover:shadow-2xl h-full">
+          <div class="absolute top-3 right-3 z-10 rounded-full bg-white/90 px-3 py-1 text-[11px] font-medium shadow">Mentor: Priyam Kesh</div>
+          <div class="aspect-[16/9] w-full bg-gradient-to-br from-violet-100 to-purple-100 grid place-items-center">
+            <img src="aiwebsitebuilding.png" alt="AI Website Building" class="w-full h-full object-cover" onerror="this.outerHTML='<div class=\'w-full h-full grid place-items-center text-violet-700 font-semibold p-4 text-center\'>AI Website Building</div>'">
+          </div>
+          <div class="p-5">
+            <h3 class="text-[18px] font-bold text-slate-900">AI Website Building</h3>
+            <p class="mt-1 text-sm text-violet-700 font-medium">Tap to chat on WhatsApp →</p>
+          </div>
+        </div>
+      </a>
+      <a href="https://wa.me/918345890843?text=I%20want%20to%20learn%20App%20Development" class="relative block group">
+        <div class="relative overflow-hidden rounded-[1.8rem] border border-white/60 bg-white/80 backdrop-blur-xl shadow-xl transition group-hover:-translate-y-1 group-hover:shadow-2xl h-full">
+          <div class="absolute top-3 right-3 z-10 rounded-full bg-white/90 px-3 py-1 text-[11px] font-medium shadow">Mentor: Priyam Kesh</div>
+          <div class="aspect-[16/9] w-full bg-gradient-to-br from-violet-100 to-purple-100 grid place-items-center">
+            <img src="appdevelopment.png" alt="App Development" class="w-full h-full object-cover" onerror="this.outerHTML='<div class=\'w-full h-full grid place-items-center text-violet-700 font-semibold p-4 text-center\'>App Development</div>'">
+          </div>
+          <div class="p-5">
+            <h3 class="text-[18px] font-bold text-slate-900">App Development</h3>
+            <p class="mt-1 text-sm text-violet-700 font-medium">Tap to chat on WhatsApp →</p>
+          </div>
+        </div>
+      </a>
+      <a href="https://wa.me/918345890843?text=I%20want%20to%20learn%20Buddhist%20Tantra" class="relative block group">
+        <div class="relative overflow-hidden rounded-[1.8rem] border border-white/60 bg-white/80 backdrop-blur-xl shadow-xl transition group-hover:-translate-y-1 group-hover:shadow-2xl h-full">
+          
+          <div class="aspect-[16/9] w-full bg-gradient-to-br from-violet-100 to-purple-100 grid place-items-center">
+            <img src="buddhisttantra.png" alt="Buddhist Tantra" class="w-full h-full object-cover" onerror="this.outerHTML='<div class=\'w-full h-full grid place-items-center text-violet-700 font-semibold p-4 text-center\'>Buddhist Tantra</div>'">
+          </div>
+          <div class="p-5">
+            <h3 class="text-[18px] font-bold text-slate-900">Buddhist Tantra</h3>
+            <p class="mt-1 text-sm text-violet-700 font-medium">Tap to chat on WhatsApp →</p>
+          </div>
+        </div>
+      </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- TIMELINE -->
+  <section id="about" class="py-20 md:py-28">
+    <div class="mx-auto max-w-6xl px-6">
+      <h2 class="text-center text-4xl md:text-5xl font-black tracking-tight">The Polarith Transformation</h2>
+      <div class="relative mt-16">
+        <div class="absolute left-1/2 top-0 bottom-0 w-[3px] -translate-x-1/2 bg-gradient-to-b from-[#7c3aed] via-violet-500/70 to-[#4c1d95] rounded-full"></div>
+
+        <div class="space-y-16">
+          <!-- stage1 -->
+          <div class="relative grid md:grid-cols-2 gap-10 items-center">
+            <div class="md:pr-16">
+              <div class="ml-auto max-w-md rounded-[1.8rem] border border-white/50 bg-white/70 p-7 shadow-xl backdrop-blur-xl hover:-translate-y-1 transition">
+                <div class="text-xs font-semibold text-red-600 uppercase tracking-wider">Stage 01</div>
+                <h3 class="mt-2 text-xl font-semibold">Learn High-Income Skill</h3>
+                <p class="mt-2 text-slate-600">Foundational mastery in web, AI, or trading with mentor-guided sprints.</p>
+              </div>
+            </div>
+            <div class="hidden md:block"></div>
+            <div class="absolute left-1/2 -translate-x-1/2 top-8 md:top-1/2 md:-translate-y-1/2 z-10">
+              <span class="relative flex size-5"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span><span class="relative inline-flex size-5 rounded-full bg-red-500 ring-4 ring-red-100"></span></span>
+            </div>
+          </div>
+          <!-- stage2 -->
+          <div class="relative grid md:grid-cols-2 gap-10 items-center">
+            <div class="hidden md:block"></div>
+            <div class="md:pl-16">
+              <div class="max-w-md rounded-[1.8rem] border border-white/50 bg-white/70 p-7 shadow-xl backdrop-blur-xl hover:-translate-y-1 transition">
+                <div class="text-xs font-semibold text-amber-600 uppercase tracking-wider">Stage 02</div>
+                <h3 class="mt-2 text-xl font-semibold">Build First Advanced Web App</h3>
+                <p class="mt-2 text-slate-600">Ship a production project with AI integration and real users.</p>
+              </div>
+            <div class="absolute left-1/2 -translate-x-1/2 top-8 md:top-1/2 md:-translate-y-1/2 z-10">
+              <span class="relative flex size-5"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span><span class="relative inline-flex size-5 rounded-full bg-amber-500 ring-4 ring-amber-100"></span></span>
+            </div>
+          </div>
+          <!-- stage3 -->
+          <div class="relative grid md:grid-cols-2 gap-10 items-center">
+            <div class="md:pr-16">
+              <div class="ml-auto max-w-md rounded-[1.8rem] border border-white/50 bg-white/70 p-7 shadow-xl backdrop-blur-xl hover:-translate-y-1 transition">
+                <div class="text-xs font-semibold text-emerald-600 uppercase tracking-wider">Stage 03</div>
+                <h3 class="mt-2 text-xl font-semibold">Generate Independent Income</h3>
+                <p class="mt-2 text-slate-600">Monetize skills via clients, products, or trading with scaling systems.</p>
+              </div>
+            <div class="hidden md:block"></div>
+            <div class="absolute left-1/2 -translate-x-1/2 top-8 md:top-1/2 md:-translate-y-1/2 z-10">
+              <span class="relative flex size-5"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span><span class="relative inline-flex size-5 rounded-full bg-emerald-500 ring-4 ring-emerald-100"></span></span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- COMPARISON -->
+  <section class="py-16">
+    <div class="mx-auto max-w-7xl px-6">
+      <div class="grid lg:grid-cols-2 gap-6">
+        <div class="rounded-[2.5rem] border border-violet-200/60 bg-violet-50/70 p-8 md:p-10 backdrop-blur-xl shadow-xl">
+          <h3 class="text-2xl font-bold text-violet-950">The Polarith Advantage</h3>
+          <ul class="mt-6 space-y-4">
+            <li class="flex items-start gap-3"><span class="mt-0.5 size-5 rounded-full bg-emerald-500 grid place-items-center text-white"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg></span><span class="text-[15px] text-violet-950/90">Real-world Project Execution</span></li>
+            <li class="flex items-start gap-3"><span class="mt-0.5 size-5 rounded-full bg-emerald-500 grid place-items-center text-white"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg></span><span class="text-[15px] text-violet-950/90">Strong AI Integration in All Courses</span></li>
+            <li class="flex items-start gap-3"><span class="mt-0.5 size-5 rounded-full bg-emerald-500 grid place-items-center text-white"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg></span><span class="text-[15px] text-violet-950/90">Focus on Income Generation</span></li>
+            <li class="flex items-start gap-3"><span class="mt-0.5 size-5 rounded-full bg-emerald-500 grid place-items-center text-white"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg></span><span class="text-[15px] text-violet-950/90">Direct Founder Mentorship</span></li>
+          </ul>
+        </div>
+        <div class="rounded-[2.5rem] border border-slate-200/70 bg-slate-50/70 p-8 md:p-10 backdrop-blur-xl shadow-xl">
+          <h3 class="text-2xl font-bold text-slate-900">Generic Alternatives</h3>
+          <ul class="mt-6 space-y-4">
+            <li class="flex items-start gap-3"><span class="mt-0.5 size-5 rounded-full bg-red-500 grid place-items-center text-white"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M18 6L6 18M6 6l12 12"/></svg></span><span class="text-[15px] text-slate-700">Heavy on Theory</span></li>
+            <li class="flex items-start gap-3"><span class="mt-0.5 size-5 rounded-full bg-red-500 grid place-items-center text-white"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M18 6L6 18M6 6l12 12"/></svg></span><span class="text-[15px] text-slate-700">Lack of AI Focus</span></li>
+            <li class="flex items-start gap-3"><span class="mt-0.5 size-5 rounded-full bg-red-500 grid place-items-center text-white"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M18 6L6 18M6 6l12 12"/></svg></span><span class="text-[15px] text-slate-700">No Execution-based Projects</span></li>
+            <li class="flex items-start gap-3"><span class="mt-0.5 size-5 rounded-full bg-red-500 grid place-items-center text-white"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M18 6L6 18M6 6l12 12"/></svg></span><span class="text-[15px] text-slate-700">Impersonal Learning</span></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- GROWTH CYCLE -->
+  <section class="py-20 md:py-28">
+    <div class="mx-auto max-w-7xl px-6">
+      <div class="text-center">
+        <h2 class="text-4xl md:text-5xl font-black tracking-tight">Growth Cycle</h2>
+      </div>
+      <div class="mt-16 flex justify-center">
+        <div class="relative size-[340px] md:size-[480px]">
+          <div class="absolute inset-0 rounded-full border border-violet-200/50 spin-80"></div>
+          <div class="absolute inset-6 rounded-full border border-violet-300/40 spin-60"></div>
+          <div class="absolute inset-12 rounded-full border border-violet-400/30 spin-40"></div>
+          <div class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
+            <div class="size-28 md:size-32 rounded-full bg-gradient-to-br from-[#7c3aed] to-[#4c1d95] grid place-items-center text-white font-semibold shadow-2xl shadow-violet-500/30 ring-1 ring-white/20">Polarith Cycle</div>
+          </div>
+          <!-- nodes -->
+          <div class="absolute left-1/2 -top-6 -translate-x-1/2">
+            <div class="rounded-2xl border border-white/50 bg-white/80 px-4 py-2.5 shadow-xl backdrop-blur-xl flex items-center gap-2 text-sm font-medium whitespace-nowrap"><span class="size-6 rounded-lg bg-violet-100 grid place-items-center text-violet-700"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 6v6l4 2"/></svg></span> Skill Acquisition</div>
+          </div>
+          <div class="absolute -right-8 top-8 md:top-1/2 md:-translate-y-1/2 z-10">
+            <div class="rounded-2xl border border-white/50 bg-white/80 px-4 py-2.5 shadow-xl backdrop-blur-xl flex items-center gap-2 text-sm font-medium whitespace-nowrap"><span class="size-6 rounded-lg bg-violet-100 grid place-items-center text-violet-700"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/></svg></span> Real Project Delivery</div>
+          </div>
+          <div class="absolute left-1/2 -bottom-6 -translate-x-1/2">
+            <div class="rounded-2xl border border-white/50 bg-white/80 px-4 py-2.5 shadow-xl backdrop-blur-xl flex items-center gap-2 text-sm font-medium whitespace-nowrap"><span class="size-6 rounded-lg bg-violet-100 grid place-items-center text-violet-700"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 0 0 1 0 7H6"/></svg></span> Revenue Generation</div>
+          </div>
+          <div class="absolute -left-8 top-8 md:top-1/2 md:-translate-y-1/2 z-10">
+            <div class="rounded-2xl border border-white/50 bg-white/80 px-4 py-2.5 shadow-xl backdrop-blur-xl flex items-center gap-2 text-sm font-medium whitespace-nowrap"><span class="size-6 rounded-lg bg-violet-100 grid place-items-center text-violet-700"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M18 17V9M13 17V5M8 17v-3"/></svg></span> Business Scaling</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- UI MOCKUPS -->
+  <section class="py-16">
+    <div class="mx-auto max-w-7xl px-6">
+      <div class="grid lg:grid-cols-3 gap-6">
+        <!-- code -->
+        <div class="rounded-[2rem] bg-slate-950 border border-white/10 shadow-2xl overflow-hidden hover:-translate-y-1 transition">
+          <div class="flex items-center gap-1.5 px-5 py-4 border-b border-white/5">
+            <span class="size-3 rounded-full bg-red-500/80"></span><span class="size-3 rounded-full bg-yellow-500/80"></span><span class="size-3 rounded-full bg-green-500/80"></span>
+            <span class="ml-3 text-xs text-slate-400">index.html</span>
+          </div>
+          <div class="p-6 font-mono text-[13px] leading-6">
+            <p class="text-slate-500">&lt;<span class="text-pink-400">section</span> <span class="text-violet-300">class</span>=<span class="text-emerald-300">"hero"</span>&gt;</p>
+            <p class="text-slate-200 pl-4">&lt;<span class="text-pink-400">h1</span>&gt;Build. ELEVATE. Dominate.&lt;/<span class="text-pink-400">h1</span>&gt;</p>
+            <p class="text-slate-200 pl-4">&lt;<span class="text-pink-400">p</span>&gt;Polarith ecosystem...&lt;/<span class="text-pink-400">p</span>&gt;</p>
+            <p class="text-slate-500">&lt;/<span class="text-pink-400">section</span>&gt;</p>
+          </div>
+          <div class="mx-5 mb-5 rounded-xl bg-emerald-500/15 border border-emerald-500/20 px-4 py-2.5 text-[12px] font-medium text-emerald-300">Project Compiled Successfully!</div>
+        </div>
+        <!-- ai dashboard -->
+        <div class="rounded-[2rem] border border-white/50 bg-white/70 p-7 shadow-xl backdrop-blur-xl hover:-translate-y-1 transition">
+          <div class="flex items-center justify-between">
+            <div>
+              <h4 class="font-semibold text-lg">AI Chatbot</h4>
+              <p class="text-sm text-slate-500">Active Interactions</p>
+            </div>
+            <div class="size-10 rounded-2xl bg-gradient-to-br from-[#7c3aed] to-[#4c1d95] grid place-items-center text-white shadow-md"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a4 4 0 0 1-4 4H7l-4 4V5a2 2 0 0 1 2-2h14a4 4 0 0 1 4 4z"/></svg></div>
+          </div>
+          <div class="mt-8 flex items-end gap-3 h-28">
+            <div class="flex-1 rounded-t-xl bg-gradient-to-t from-violet-600/20 to-violet-500 h-[40%]"></div>
+            <div class="flex-1 rounded-t-xl bg-gradient-to-t from-violet-600/20 to-violet-500 h-[70%]"></div>
+            <div class="flex-1 rounded-t-xl bg-gradient-to-t from-[#7c3aed] to-[#4c1d95] shadow-lg shadow-violet-500/30 h-[90%]"></div>
+            <div class="flex-1 rounded-t-xl bg-gradient-to-t from-violet-600/20 to-violet-500 h-[60%]"></div>
+          </div>
+          <p class="mt-4 text-xs text-slate-500">High accuracy</p>
+        </div>
+        <!-- analytics -->
+        <div class="rounded-[2rem] border border-white/50 bg-white/70 p-7 shadow-xl backdrop-blur-xl hover:-translate-y-1 transition">
+          <div class="flex items-center justify-between">
+            <div>
+              <h4 class="font-semibold text-lg">Performance</h4>
+              <p class="text-sm text-slate-500">Growth tracked</p>
+            </div>
+            <div class="size-10 rounded-2xl bg-slate-900/5 grid place-items-center text-slate-700 ring-1 ring-slate-900/10"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/></svg></div>
+          </div>
+          <div class="mt-6 relative h-32">
+            <svg viewBox="0 0 300 120" class="w-full h-full">
+              <defs><linearGradient id="g2" x1="0" x2="1"><stop stop-color="#7c3aed"/><stop offset="1" stop-color="#4c1d95"/></linearGradient></defs>
+              <g stroke="#e2e8f0" stroke-width="1"><line x1="0" y1="20" x2="300" y2="20"/><line x1="0" y1="50" x2="300" y2="50"/><line x1="0" y1="80" x2="300" y2="80"/><line x1="0" y1="110" x2="300" y2="110"/></g>
+              <path d="M0 90 C 40 85, 80 70, 120 60 S 200 35, 240 30, 300 25" fill="none" stroke="url(#g2)" stroke-width="3" stroke-linecap="round"/>
+              <circle cx="240" cy="30" r="4" fill="#7c3aed"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOUNDER -->
+  <section id="founder" class="relative mt-12">
+    <div class="relative overflow-hidden">
+      <div class="absolute inset-0 bg-gradient-to-br from-[#4c1d95] via-[#6d28d9] to-[#7c3aed]"></div>
+      <div class="absolute inset-0 opacity-20" style="background-image: radial-gradient(white 1px, transparent 1px); background-size: 24px 24px;"></div>
+      <div class="relative mx-auto max-w-6xl px-6 py-24 md:py-32 text-center">
+        <div class="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs text-white/80 backdrop-blur">Founder's Vision</div>
+        <blockquote class="mt-8 fraunces text-4xl md:text-6xl leading-[1.1] font-semibold text-white">
+          “To build a generation that not only uses technology — but masters it.”
+        </blockquote>
+        <div class="mt-8 text-violet-100/90 font-medium">Priyam Kesh — Developer, Innovator, Strategist</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer id="contact" class="relative border-t border-slate-200/70 bg-white/40 backdrop-blur-xl">
+    <div class="mx-auto max-w-7xl px-6 py-16">
+      <div class="grid md:grid-cols-2 gap-12 items-start">
+        <div>
+          <div class="flex items-center gap-2.5">
+            <div class="size-9 rounded-xl bg-gradient-to-br from-[#7c3aed] to-[#4c1d95] grid place-items-center shadow-md"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" class="text-white"><path d="M12 2L20 7v10l-8 5-8-5V7l8-5Z" stroke="currentColor" stroke-width="1.5" fill="currentColor" fill-opacity="0.2"/></svg></div>
+            <span class="text-xl font-extrabold">Polarith</span>
+          </div>
+          <p class="mt-4 max-w-md text-slate-600">Web & Learnings ecosystem for builders who ship. Let's create your unfair advantage.</p>
+        </div>
+        <div class="md:text-right">
+          <div class="text-sm font-semibold text-slate-900">Get in touch</div>
+          <a href="mailto:priaxom.ai@gmail.com" class="mt-2 inline-block text-lg font-medium text-violet-700 hover:text-violet-800">priaxom.ai@gmail.com</a>
+          <div class="mt-4 flex md:justify-end gap-3">
+            <a href="https://polarithweb.github.io" target="_blank" rel="noopener" class="size-9 grid place-items-center rounded-xl border border-slate-200 bg-white/70 hover:-translate-y-0.5 transition"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.07 0l1.41-1.41a5 5 0 0 0-7.07-7.07L9 6"/><path d="M14 11a5 5 0 0 0-7.07 0L5.5 12.43a5 5 0 0 0 7.07 7.07L15 18"/></svg></a>
+            <a href="https://wa.me/918345890843" target="_blank" rel="noopener" class="size-9 grid place-items-center rounded-xl border border-slate-200 bg-white/70 hover:-translate-y-0.5 transition"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M20.5 3.5A11 11 0 0 0 3.3 18.7L2 22l3.4-1a11 11 0 1 0 15.1-17.5ZM12 20.5a8.5 8.5 0 0 1-4.3-1.2l-.3-.2-2.5.7-2.4-.2-.3A8.5 0 1 1 12 20.5Zm4.7-6.3c-.3-.1-1.6-.8-1.8-.9s-.4-.1-.6.1-.7.9-.8 1-.3.2-.6.1a6.9 6.9 0 0 1-2-1.2 7.6 7.6 0 0 1-1.4-1.7c-.2-.3 0-.5.1-.6l.4-.5.2-.3c.1-.2 0-.3 0-.5s-.6-1.5-.8-2c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 2.9 2.9 0 0 0-.9 2.1 5 5 0 0 0 1 2.7 11.3 11.3 0 0 0 4.3 3.8 4.8 4.8 0 0 0 2.2.6 2.5 2.5 0 0 0 1.6-.5 2 2 0 0 0 .5-1.4c0-.2 0-.4-.2-.5Z"/></svg></a>
+          </div>
+        </div>
+      </div>
+      <p class="mt-12 text-center text-xs text-slate-500">Developer: Priyam Kesh, marketed by Souvik Nayak</p>
+    </div>
+  </footer>
+
+  <!-- FABs -->
+  <div class="fixed bottom-5 right-5 z-[60] flex flex-col gap-3">
+    <a href="https://wa.me/918345890843" target="_blank" rel="noopener noreferrer" aria-label="WhatsApp" class="group size-14 rounded-full bg-[#25D366] shadow-xl shadow-green-600/20 grid place-items-center text-white transition hover:-translate-y-0.5 hover:shadow-2xl hover:shadow-green-600/30">
+      <svg width="28" height="28" viewBox="0 0 448 512" fill="white" xmlns="http://www.w3.org/2000/svg"><path d="M380.9 97.1C339 55.1 283.2 32 223.9 32c-122.4 0-222 99.6-222 222 0 39.1 10.2 77.3 29.6 111L0 480l117.7-30.9c32.4 17.7 68.9 27 106.1 27h.1c122.3 0 224.1-99.6 224.1-222 0-59.3-25.2-115-67.1-157zm-157 341.6c-33.2 0-65.7-8.9-94-25.7l-6.7-4-69.8 18.3L72 359.2l-4.4-7c-18.5-29.4-28.2-63.3-28.2-98.2 0-101.7 82.8-184.5 184.6-184.5 49.3 0 95.6 19.2 130.4 54.1 34.8 34.9 56.2 81.2 56.1 130.5 0 101.8-84.9 184.6-186.6 184.6zm101.2-138.2c-5.5-2.8-32.8-16.2-37.9-18-5.1-1.9-8.8-2.8-12.5 2.8-3.7 5.6-14.3 18-17.6 21.8-3.2 3.7-6.5 4.2-12 1.4-32.6-16.3-54-29.1-75.5-66-5.7-9.8 5.7-9.1 16.3-30.3 1.8-3.7.9-6.9-.5-9.7-1.4-2.8-12.5-30.1-17.1-41.2-4.5-10.8-9.1-9.3-12.5-9.5-3.2-.2-6.9-.2-10.6-.2-3.7 0-9.7 1.4-14.8 6.9-5.1 5.6-19.4 19-19.4 46.3 0 27.3 19.9 53.7 22.6 57.4 2.8 3.7 39.1 59.7 94.8 83.8 35.2 15.2 49 16.5 66.6 13.9 10.7-1.6 32.8-13.4 37.4-26.4 4.6-13 4.6-24.1 3.2-26.4-1.3-2.5-5-3.9-10.5-6.6z"/></svg>
+    </a>
+    <a href="https://www.instagram.com/atheist.8825/" target="_blank" rel="noopener noreferrer" aria-label="Instagram" class="group size-14 rounded-full shadow-xl shadow-pink-600/20 grid place-items-center text-white transition hover:-translate-y-0.5 hover:shadow-2xl hover:shadow-pink-600/30" style="background: radial-gradient(circle at 30% 107%, #fdf497 0%, #fdf497 5%, #fd5949 45%, #d6249f 60%, #285AEB 90%)">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><circle cx="17.5" cy="6.5" r="1.5" fill="currentColor" stroke="none"/></svg>
+    </a>
+  </div>
+
+  <script>
+    const btn = document.getElementById('menuBtn');
+    const nav = document.getElementById('mobileNav');
+    btn?.addEventListener('click', () => nav.classList.toggle('hidden'));
+  </script>
+</body>
+</html>
